@@ -1,46 +1,52 @@
-# Oilist: Data Transformation Pipeline
+# 🇧🇷 Olist E-Commerce Data Pipeline
 
-![dbt Core](https://img.shields.io/badge/dbt-Core%201.8-FF694B?logo=dbt&logoColor=white)
+![dbt](https://img.shields.io/badge/dbt-Core%201.8-FF694B?logo=dbt&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/Postgres-Database-336791?logo=postgresql&logoColor=white)
 ![Status](https://img.shields.io/badge/Pipeline-Production-green)
-![License](https://img.shields.io/badge/License-Proprietary-lightgrey)
 
-**Oilist** adalah proyek transformasi data (ELT) berbasis **dbt (data build tool)** yang dirancang untuk memproses, membersihkan, dan memodelkan data operasional perkebunan. Proyek ini mengubah data mentah dari berbagai sumber (sensor IoT, laporan panen manual, data cuaca) menjadi wawasan bisnis yang siap dianalisis.
+Proyek ini adalah simulasi **Modern Data Engineering Pipeline** menggunakan dataset publik [Brazilian E-Commerce by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce). 
+
+Tujuan utama proyek ini adalah membangun pipeline **ELT (Extract, Load, Transform)** yang mengubah data mentah yang berantakan menjadi **Star Schema** yang siap digunakan oleh Data Analyst untuk dashboard bisnis.
+
+---
 
 ## 🏗️ Arsitektur Data
 
-Pipeline ini mengikuti pola arsitektur **Modern Data Stack**:
-1.  **Extract & Load:** Data di-load ke Data Warehouse (Raw Layer) menggunakan *Airbyte/Fivetran*.
-2.  **Transform (Oilist):** dbt mengambil alih untuk transformasi data di dalam warehouse.
-3.  **Analyze:** Data yang sudah bersih dikonsumsi oleh BI Tools (Superset/Metabase/Tableau).
+Alur data dalam proyek ini mengikuti prinsip **Medallion Architecture**:
 
-### Data Lineage Layers
-Proyek ini distrukturisasi ke dalam 3 layer utama (Medallion Architecture):
-
-* **🥉 Bronze (Staging):** View 1:1 dengan source, cleaning dasar, renaming kolom (`stg_`).
-* **🥈 Silver (Intermediate):** Logika bisnis kompleks, joins antar tabel, agregasi level menengah (`int_`).
-* **🥇 Gold (Marts):** Model final berbentuk Star Schema (Facts & Dimensions) siap untuk dashboard (`fct_`, `dim_`).
-
-## 📂 Struktur Direktori
-
-```text
-oilist/
-├── analysis/               # Query SQL ad-hoc untuk investigasi data
-├── macros/                 # Fungsi Jinja custom (DRY principle)
-│   └── generate_schema_name.sql
-├── models/
-│   ├── staging/            # Layer Pembersihan (Bronze)
-│   │   ├── _schema.yml     # Dokumentasi & Tes source
-│   │   └── stg_harvests.sql
-│   ├── intermediate/       # Layer Logika (Silver)
-│   │   └── int_yield_analysis.sql
-│   └── marts/              # Layer Bisnis (Gold)
-│   │   ├── core/           # Dimensi utama (dim_locations, dim_workers)
-│   │   └── operations/     # Transaksi (fct_monthly_production)
-├── seeds/                  # Data statis (Mapping pupuk, Kode area)
-├── snapshots/              # Type 2 SCD (History perubahan harga/aset)
-├── tests/                  # Singular data tests
-└── dbt_project.yml         # Konfigurasi project root
+1.  **Raw Layer (Seeds):** Data CSV mentah dari Kaggle dimuat ke database.
+2.  **Staging Layer (Bronze):** Pembersihan tipe data, standarisasi nama kolom, dan perbaikan typo.
+3.  **Intermediate Layer (Silver):** Logika bisnis kompleks, join antar tabel, dan kalkulasi metrik perantara.
+4.  **Marts Layer (Gold):** Tabel final berbentuk **Fact & Dimensions** yang siap dikonsumsi BI Tools.
 
 
 
+
+
+---
+
+## 📚 Project Walkthrough (Business Logic)
+
+Bagian ini menjelaskan logika transformasi data dari awal hingga akhir (*End-to-End*).
+
+### 1. Data Ingestion & Cleaning (Staging Layer)
+Langkah pertama adalah menstandarisasi data mentah yang masuk.
+
+* **Handling Typo:** Memperbaiki nama kolom `product_name_lenght` menjadi `product_name_length`.
+* **Type Casting:** Memastikan semua ID (Order ID, Customer ID) bertipe `STRING/VARCHAR` dan harga bertipe `NUMERIC`.
+* **Date Parsing:** Mengubah string tanggal menjadi objek `TIMESTAMP` agar bisa dilakukan perhitungan selisih hari.
+
+### 2. Complex Logic & Aggregation (Intermediate Layer)
+Sebelum masuk ke tabel final, kita perlu menghitung total belanja per order. Karena satu Order ID bisa memiliki banyak item, kita melakukan agregasi di sini.
+
+**File:** `int_order_payments.sql`
+```sql
+select
+    order_id,
+    sum(price) as total_item_value,           -- Total harga barang
+    sum(freight_value) as total_freight_value, -- Total ongkir
+    sum(price + freight_value) as total_order_value, -- Total Revenue
+    count(order_item_id) as number_of_items    -- Jumlah barang dalam keranjang
+from {{ ref('stg_items') }}
+group by order_id
