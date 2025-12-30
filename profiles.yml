@@ -1,0 +1,14 @@
+olist_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: 'olist.duckdb'
+      threads: 4
+      host: ep-summer-mouse-ahm82av2-pooler.c-3.us-east-1.aws.neon.tech # Tanpa https://
+      user: neondb_owner
+      password: npg_Futem9f8kxqD
+      port: 5432
+      dbname: neondb
+      schema: public
+      sslmode: require

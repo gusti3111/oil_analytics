@@ -1,0 +1,30 @@
+
+target/
+dbt_packages/
+logs/
+*.user.yml
+# File System
+.DS_Store
+Thumbs.db
+
+# Python & Virtual Env
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# dbt specific (PENTING!)
+target/
+dbt_packages/
+logs/
+
+# Database Files (JANGAN UPLOAD DATABASE)
+*.duckdb
+*.duckdb.wal
+*.olist.duckdb
+*.olist.duckdb.wal
+
+
+# Environment Variables / Secrets
+.env
