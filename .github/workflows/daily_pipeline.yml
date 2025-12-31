@@ -1,0 +1,35 @@
+name: Daily Olist Pipeline
+
+# JADWAL: Jalan setiap jam 00:00 UTC (Pagi hari)
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  # Tombol manual untuk testing
+  workflow_dispatch:
+
+jobs:
+  update_data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: pip install pandas sqlalchemy psycopg2-binary faker dbt-postgres
+
+      - name: 1. Generate Fake Data (Inject ke Raw)
+        env:
+          # Simpan password DB di GitHub Secrets, jangan di codingan!
+          DB_URL: ${{ secrets.DATABASE_URL }} 
+        run: python generate_data.py
+
+      - name: 2. Run dbt (Update Marts)
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+        run: dbt run --profiles-dir .

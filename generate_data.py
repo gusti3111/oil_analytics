@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 # KONFIGURASI DATABASE (SESUAIKAN DISINI!)
 # ==========================================
 # Format: postgresql://username:password@host:port/database_name
-DB_CONNECTION_STR = 'postgresql://postgres:password@localhost:5432/olist_db'
+DB_CONNECTION_STR = 'postgresql://neondb_owner:npg_Futem9f8kxqD@ep-summer-mouse-ahm82av2-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require''
 
 # Inisialisasi Faker dan Koneksi Database
 fake = Faker()
@@ -34,6 +34,7 @@ def generate_fake_data(num_orders=5):
         delivered_carrier_time = approved_time + timedelta(hours=random.randint(2, 24))
         # Estimasi sampai 3 hari lagi
         estimated_delivery = purchase_time + timedelta(days=3)
+        
         
         order_data = {
             'order_id': order_id,
